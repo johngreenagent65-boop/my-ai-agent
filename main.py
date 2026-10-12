@@ -171,6 +171,18 @@ async def run_telegram() -> None:
         if update.message:
             await update.message.reply_text("Your local conversation history has been cleared.")
 
+    async def research_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if not update.message or not update.effective_user:
+            return
+        query = " ".join(context.args).strip()
+        if not query:
+            await update.message.reply_text("Usage: /research your topic")
+            return
+        user_id = f"telegram:{update.effective_user.id}"
+        answer = ask_model(user_id, f"/research {query}", memory)
+        for start_index in range(0, len(answer), 4000):
+            await update.message.reply_text(answer[start_index:start_index + 4000])
+
     async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if update.message:
             await update.message.reply_text(
@@ -192,8 +204,8 @@ async def run_telegram() -> None:
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("reset", reset))
+    app.add_handler(CommandHandler("research", research_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
-    app.add_handler(MessageHandler(filters.Regex(r"^/research\\s+.+"), chat))
     print("Telegram bot is running. Stop with Ctrl+C.")
     await app.initialize()
     await app.start()
